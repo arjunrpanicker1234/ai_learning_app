@@ -1,16 +1,87 @@
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify, flash, session, current_app
+from flask import Blueprint, render_template, redirect, url_for, request, jsonify, flash, session
 from flask_login import login_required, current_user
-from models import db, Skill, Assessment, Resource, ChatSession, ChatMessage, Question , Tutor,User,TutorRequest   # Import Question model
-from routes.tutor import tutor_bp  # Import tutor_bp from tutor.py
-import os
-import csv
+from models import db, Skill, Assessment, Resource, ChatSession, ChatMessage, Question, Tutor, User, TutorRequest
 from services.llm_service import LLMService
-
+from services.pdf_service import PDFService
+import logging
 
 user_bp = Blueprint('user', __name__, url_prefix='/user')
+logging.basicConfig(level=logging.DEBUG)
 llm_service = LLMService()
-@user_bp.route('/assessment_result/<int:skill_id>')
+pdf_service = PDFService()
+
+@user_bp.route('/send_message', methods=['POST'], endpoint='user_send_message')
 @login_required
+def send_message():
+    try:
+        session_id = request.form.get('session_id')
+        message_content = request.form.get('message')
+        is_user = request.form.get('is_user', 'true').lower() == 'true'
+        logging.debug(f"Received message from user: {message_content}, session_id: {session_id}, is_user: {is_user}")
+
+        session = ChatSession.query.get(session_id)
+        if not session:
+            error_message = f"Invalid session ID: {session_id}"
+            logging.error(error_message)
+            return jsonify({'error': error_message}), 400
+
+        # Save user message
+        user_msg = ChatMessage(
+            session_id=session.id,
+            is_user=True,
+            content=message_content
+        )
+        db.session.add(user_msg)
+        db.session.commit()
+        logging.debug(f"Saved user message: {user_msg.content}")
+
+        # Get relevant resources for context
+        skill = Skill.query.get(session.skill_id)
+        resources = Resource.query.filter_by(skill_id=session.skill_id).limit(3).all()
+        context = "\n".join([r.content for r in resources if r.content])
+        logging.debug(f"Context from resources: {context}")
+
+        # Extract and chunk text from PDF files
+        pdf_chunks = []
+        for resource in resources:
+            if resource.content_type == "pdf":
+                pdf_chunks.extend(pdf_service.extract_and_chunk(resource.file_path))
+        logging.debug(f"Extracted PDF chunks: {pdf_chunks}")
+
+        # Combine the PDF chunks with the existing context
+        context += "\n".join(pdf_chunks)
+
+        # Generate AI response
+        ai_response = llm_service.answer_question(skill.name, message_content, context)
+        logging.debug(f"AI response: {ai_response}")
+
+        # Save AI message
+        ai_msg = ChatMessage(
+            session_id=session.id,
+            is_user=False,
+            content=ai_response
+        )
+        db.session.add(ai_msg)
+        db.session.commit()
+        logging.debug(f"Saved AI message: {ai_msg.content}")
+
+        return jsonify({
+            'success': True,
+            'user_message': {
+                'id': user_msg.id,
+                'content': user_msg.content,
+                'timestamp': user_msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            },
+            'ai_message': {
+                'id': ai_msg.id,
+                'content': ai_msg.content,
+                'timestamp': ai_msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        })
+    except Exception as e:
+        logging.error(f"Error in send_message: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
+
 def assessment_result(skill_id):
     # Fetch user's assessment result (dummy logic here)
     user_score = 4  # Example score

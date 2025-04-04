@@ -1,12 +1,42 @@
 import requests
 import json
 from config import Config
+from services.pdf_service import PDFService  
 
 class LLMService:
     def __init__(self):
         self.api_url = Config.LLM_API_URL
         self.model = Config.LLM_MODEL
+        self.pdf_service = PDFService()
     
+    def answer_question(self, skill_name, user_question, context=""):
+        pdf_context = self.search_pdf_content(skill_name, user_question)
+        if pdf_context:
+            return pdf_context
+
+        prompt = f"""
+        The user is learning about {skill_name} and has asked the following question:
+        
+        "{user_question}"
+        
+        Additional context from learning materials:
+        {context}
+        
+        Provide a helpful, accurate, and concise answer.
+        """
+
+        response = self._call_llm(prompt)
+        return response
+
+    def search_pdf_content(self, skill_name, user_question):
+        pdf_files = self.pdf_service.get_pdfs_for_skill(skill_name)
+        for pdf in pdf_files:
+            chunks = self.pdf_service.extract_and_chunk(pdf.file_path)
+            for chunk in chunks:
+                if user_question.lower() in chunk.lower():
+                    return chunk
+        return None
+
     def generate_questions(self, skill_name, num_questions=5, difficulty=3):
         prompt = f"""
         Generate {num_questions} multiple-choice questions about {skill_name} at difficulty level {difficulty}/5.

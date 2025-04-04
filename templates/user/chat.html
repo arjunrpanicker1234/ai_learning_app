@@ -203,9 +203,7 @@
                 <input type="hidden" name="session_id" value="{{ session.id }}">
                 <div class="input-group">
                     <input type="text" name="message" id="messageInput" class="form-control" placeholder="Type your message..." autocomplete="off" required>
-                    <button class="btn btn-send" id="sendButton" type="submit">
-                        Send
-                    </button>
+                    <button class="btn btn-send" id="sendButton" type="submit">Send</button>
                 </div>
             </form>
         </div>
@@ -225,6 +223,57 @@
             }
             scrollToBottom();
             
+            // Send automatic welcome message when chat starts
+            function sendWelcomeMessage() {
+                const welcomeMessage = "Welcome to the AI Tutor! How can I assist you today?";
+                addMessage(welcomeMessage, false);
+                $.ajax({
+                    type: 'POST',
+                    url: messageForm.action,
+                    data: {
+                        session_id: $('input[name="session_id"]').val(),
+                        message: welcomeMessage,
+                        is_user: false
+                    },
+                    success: function(data) {
+                        // Handle success
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Error sending welcome message. Please try again.');
+                    }
+                });
+            }
+            sendWelcomeMessage();
+
+            // Add message to chat
+            function addMessage(content, isUser) {
+                const messageWrapper = document.createElement('div');
+                messageWrapper.classList.add('message-wrapper');
+                if (isUser) {
+                    messageWrapper.classList.add('user-wrapper');
+                }
+
+                const message = document.createElement('div');
+                message.classList.add('message');
+                if (isUser) {
+                    message.classList.add('user-message');
+                } else {
+                    message.classList.add('ai-message');
+                }
+                message.innerHTML = content;
+
+                const timestamp = document.createElement('div');
+                timestamp.classList.add('timestamp');
+                const now = new Date();
+                timestamp.innerHTML = now.getHours() + ':' + (now.getMinutes()<10?'0':'') + now.getMinutes();
+
+                message.appendChild(timestamp);
+                messageWrapper.appendChild(message);
+                chatContainer.appendChild(messageWrapper);
+
+                scrollToBottom();
+            }
+
             // Fix for the send button not working properly
             let isSubmitting = false;
             
@@ -264,7 +313,11 @@
                         typingIndicator.classList.remove('visible');
                         
                         // Add AI response with typing effect
-                        typeAIResponse(data.ai_message.content);
+                        if (data.success && data.ai_message) {
+                            addMessage(data.ai_message.content, false);
+                        } else {
+                            alert('Error in AI response. Please try again.');
+                        }
                         
                         // Enable form again
                         isSubmitting = false;
@@ -276,84 +329,6 @@
                     }
                 });
             });
-            
-            // Add message to chat container
-            function addMessage(content, isUser = false) {
-                const wrapper = document.createElement('div');
-                wrapper.className = `message-wrapper ${isUser ? 'user-wrapper' : ''}`;
-                
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
-                
-                if (isUser) {
-                    messageDiv.textContent = content;
-                } else {
-                    // For AI messages, the content will be added by the typing effect
-                    messageDiv.innerHTML = '';
-                }
-                
-                const timestamp = document.createElement('div');
-                timestamp.className = 'timestamp';
-                timestamp.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                messageDiv.appendChild(timestamp);
-                
-                wrapper.appendChild(messageDiv);
-                chatContainer.insertBefore(wrapper, typingIndicator);
-                scrollToBottom();
-                
-                return messageDiv;
-            }
-            
-            // Type effect for AI responses
-            function typeAIResponse(content) {
-                const messageDiv = addMessage(content, false);
-                const textContainer = document.createElement('span');
-                textContainer.className = 'text-content';
-                
-                // Insert text container before timestamp
-                messageDiv.insertBefore(textContainer, messageDiv.querySelector('.timestamp'));
-                
-                // Create cursor element
-                const cursor = document.createElement('span');
-                cursor.className = 'cursor';
-                textContainer.appendChild(cursor);
-                
-                let i = 0;
-                // Variable typing speed for more natural effect
-                const getRandomDelay = () => Math.floor(Math.random() * 30) + 20;
-                
-                function typeNextCharacter() {
-                    if (i < content.length) {
-                        const char = content.charAt(i);
-                        
-                        // Create text node and insert before cursor
-                        const textNode = document.createTextNode(char);
-                        textContainer.insertBefore(textNode, cursor);
-                        
-                        i++;
-                        scrollToBottom();
-                        
-                        // Calculate delay based on punctuation for more natural typing
-                        let delay = getRandomDelay();
-                        if ('.!?'.includes(char)) {
-                            delay = 400; // Pause longer at end of sentences
-                        } else if (',;:'.includes(char)) {
-                            delay = 200; // Slight pause at commas and other punctuation
-                        }
-                        
-                        setTimeout(typeNextCharacter, delay);
-                    } else {
-                        // Remove cursor when typing is complete
-                        cursor.remove();
-                    }
-                }
-                
-                // Start typing effect
-                setTimeout(typeNextCharacter, 200);
-            }
-            
-            // Focus input field on load
-            messageInput.focus();
         });
     </script>
 </body>
