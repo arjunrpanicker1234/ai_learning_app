@@ -122,7 +122,7 @@ def dashboard():
 
     # Fetch user assessments
     user_assessments = Assessment.query.filter_by(user_id=current_user.id).all()
-    
+
     # If no assessment, show available skills
     if not user_assessments:
         skills = Skill.query.all()
@@ -139,13 +139,29 @@ def dashboard():
         a.skill_id: {"proficiency_level": a.proficiency_level, "score": a.score} for a in user_assessments
     }
 
+    # Suggest topics and quick links based on scores
+    suggested_topics = []
+    quick_links = []
+    for assessment in user_assessments:
+        if assessment.score >= 8:
+            suggested_topics.append(f"Advanced topics in {assessment.skill.name}")
+            quick_links.append({"title": f"Advanced {assessment.skill.name}", "url": "#"})
+        elif assessment.score >= 5:
+            suggested_topics.append(f"Intermediate topics in {assessment.skill.name}")
+            quick_links.append({"title": f"Intermediate {assessment.skill.name}", "url": "#"})
+        else:
+            suggested_topics.append(f"Basic topics in {assessment.skill.name}")
+            quick_links.append({"title": f"Basic {assessment.skill.name}", "url": "#"})
+
     return render_template(
         'user/dashboard.html',
         skills=Skill.query.all(),
         assessed_skills=assessed_skills,
         pending_requests=pending_requests,
         approved_tutors=approved_tutors,
-        show_assessment_prompt=False
+        show_assessment_prompt=False,
+        suggested_topics=suggested_topics,
+        quick_links=quick_links
     )
 
 
@@ -313,55 +329,92 @@ def start_chat(skill_id):
                           session=chat_session,
                           messages=messages)
 
+@user_bp.route('/get_topic_suggestions', methods=['GET'])
+@login_required
+def get_topic_suggestions():
+    # Example topic suggestions
+    suggestions = [
+        "Python Basics",
+        "Object-Oriented Programming",
+        "Data Structures",
+        "Algorithms",
+        "Web Development with Flask",
+        "Machine Learning with Scikit-Learn",
+        "Data Analysis with Pandas",
+        "Natural Language Processing",
+        "Deep Learning with TensorFlow",
+        "Data Visualization with Matplotlib"
+    ]
+    return jsonify({"suggestions": suggestions})
+
 @user_bp.route('/send_message', methods=['POST'])
 @login_required
 def send_message():
-    session_id = request.form.get('session_id', type=int)
-    message_content = request.form.get('message')
-    
-    if not session_id or not message_content:
-        return jsonify({'error': 'Missing data'}), 400
-    
-    # Verify session belongs to user
-    chat_session = ChatSession.query.get_or_404(session_id)
-    if chat_session.user_id != current_user.id:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    # Save user message
-    user_msg = ChatMessage(
-        session_id=session_id,
-        is_user=True,
-        content=message_content
-    )
-    db.session.add(user_msg)
-    db.session.commit()
-    
-    # Get relevant resources for context
-    skill = Skill.query.get(chat_session.skill_id)
-    resources = Resource.query.filter_by(skill_id=chat_session.skill_id).limit(3).all()
-    context = "\n".join([r.content for r in resources if r.content])
-    
-    # Generate AI response
-    ai_response = llm_service.answer_question(skill.name, message_content, context)
-    
-    # Save AI message
-    ai_msg = ChatMessage(
-        session_id=session_id,
-        is_user=False,
-        content=ai_response
-    )
-    db.session.add(ai_msg)
-    db.session.commit()
-    
-    return jsonify({
-        'user_message': {
-            'id': user_msg.id,
-            'content': user_msg.content,
-            'timestamp': user_msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
-        },
-        'ai_message': {
-            'id': ai_msg.id,
-            'content': ai_msg.content,
-            'timestamp': ai_msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
-        }
-    })
+    try:
+        session_id = request.form.get('session_id')
+        message_content = request.form.get('message')
+        is_user = request.form.get('is_user', 'true').lower() == 'true'
+        logging.debug(f"Received message from user: {message_content}, session_id: {session_id}, is_user: {is_user}")
+
+        session = ChatSession.query.get(session_id)
+        if not session:
+            error_message = f"Invalid session ID: {session_id}"
+            logging.error(error_message)
+            return jsonify({'error': error_message}), 400
+
+        # Save user message
+        user_msg = ChatMessage(
+            session_id=session.id,
+            is_user=True,
+            content=message_content
+        )
+        db.session.add(user_msg)
+        db.session.commit()
+        logging.debug(f"Saved user message: {user_msg.content}")
+
+        # Get relevant resources for context
+        skill = Skill.query.get(session.skill_id)
+        resources = Resource.query.filter_by(skill_id=session.skill_id).limit(3).all()
+        context = "\n".join([r.content for r in resources if r.content])
+        logging.debug(f"Context from resources: {context}")
+
+        # Extract and chunk text from PDF files
+        pdf_chunks = []
+        for resource in resources:
+            if resource.content_type == "pdf":
+                pdf_chunks.extend(pdf_service.extract_and_chunk(resource.file_path))
+        logging.debug(f"Extracted PDF chunks: {pdf_chunks}")
+
+        # Combine the PDF chunks with the existing context
+        context += "\n".join(pdf_chunks)
+
+        # Generate AI response
+        ai_response = llm_service.answer_question(skill.name, message_content, context)
+        logging.debug(f"AI response: {ai_response}")
+
+        # Save AI message
+        ai_msg = ChatMessage(
+            session_id=session.id,
+            is_user=False,
+            content=ai_response
+        )
+        db.session.add(ai_msg)
+        db.session.commit()
+        logging.debug(f"Saved AI message: {ai_msg.content}")
+
+        return jsonify({
+            'success': True,
+            'user_message': {
+                'id': user_msg.id,
+                'content': user_msg.content,
+                'timestamp': user_msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            },
+            'ai_message': {
+                'id': ai_msg.id,
+                'content': ai_msg.content,
+                'timestamp': ai_msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        })
+    except Exception as e:
+        logging.error(f"Error in send_message: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500

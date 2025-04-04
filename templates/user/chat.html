@@ -134,6 +134,9 @@
             margin-bottom: 20px;
             opacity: 0;
             transition: opacity 0.3s ease;
+            position: absolute;
+            bottom: 120px;
+            left: 210px; 
         }
         .typing-indicator.visible {
             opacity: 1;
@@ -207,6 +210,14 @@
                 </div>
             </form>
         </div>
+        
+        <!-- Topic Suggestions Section -->
+        <div class="suggestions mt-4">
+            <h4>Suggested Python Topics</h4>
+            <ul class="list-group" id="suggestionsList">
+                <!-- Topics will be dynamically inserted here -->
+            </ul>
+        </div>
     </div>
 
     <script>
@@ -216,6 +227,7 @@
             const messageForm = document.getElementById('messageForm');
             const messageInput = document.getElementById('messageInput');
             const sendButton = document.getElementById('sendButton');
+            const suggestionsList = document.getElementById('suggestionsList');
             
             // Scroll to bottom of chat on load
             function scrollToBottom() {
@@ -244,7 +256,7 @@
                 });
             }
             sendWelcomeMessage();
-
+            
             // Add message to chat
             function addMessage(content, isUser) {
                 const messageWrapper = document.createElement('div');
@@ -272,6 +284,68 @@
                 chatContainer.appendChild(messageWrapper);
 
                 scrollToBottom();
+            }
+
+            // Fetch and display topic suggestions
+            function fetchTopicSuggestions() {
+                $.ajax({
+                    type: 'GET',
+                    url: '{{ url_for("user.get_topic_suggestions") }}', // Adjust this URL as needed
+                    success: function(data) {
+                        suggestionsList.innerHTML = '';
+                        data.suggestions.forEach(function(suggestion) {
+                            const listItem = document.createElement('li');
+                            listItem.classList.add('list-group-item');
+                            listItem.innerHTML = `<a href="#" class="suggestion-link">${suggestion}</a>`;
+                            suggestionsList.appendChild(listItem);
+                        });
+
+                        // Add click event listener to suggestion links
+                        const suggestionLinks = document.querySelectorAll('.suggestion-link');
+                        suggestionLinks.forEach(function(link) {
+                            link.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                const topic = this.textContent;
+                                handleTopicSelection(topic);
+                            });
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Error fetching topic suggestions. Please try again.');
+                    }
+                });
+            }
+            fetchTopicSuggestions();
+
+            // Handle topic selection
+            function handleTopicSelection(topic) {
+                addMessage(`You selected the topic: ${topic}`, true);
+                typingIndicator.classList.add('visible');
+                scrollToBottom();
+
+                $.ajax({
+                    type: 'POST',
+                    url: messageForm.action,
+                    data: {
+                        session_id: $('input[name="session_id"]').val(),
+                        message: topic,
+                        is_user: true
+                    },
+                    success: function(data) {
+                        typingIndicator.classList.remove('visible');
+                        if (data.success && data.ai_message) {
+                            addMessage(data.ai_message.content, false);
+                        } else {
+                            alert('Error in AI response. Please try again.');
+                        }
+                        isSubmitting = false;
+                    },
+                    error: function(xhr, status, error) {
+                        typingIndicator.classList.remove('visible');
+                        alert('Error sending message. Please try again.');
+                        isSubmitting = false;
+                    }
+                });
             }
 
             // Fix for the send button not working properly
