@@ -1,0 +1,40 @@
+skill_name,question_text,option1,option2,option3,option4,correct_option,difficulty
+Python,What is the correct file extension for Python files?,.py,.pt,.pyn,.python,1,1
+Python,Which keyword is used to define a function in Python?,func,define,def,method,3,2
+Python,What is the output of print(2 ** 3) in Python?,5,6,7,8,4,1
+Python,Which of the following is a valid variable name?,2var,my_var,if,return,2,2
+Python,What is used to create a loop in Python?,while,for,do-while,loop,2,2
+Python,Which module is used for regular expressions?,os,sys,re,json,3,3
+Python,What is the default data type of input()?,int,float,string,bool,3,1
+Python,How do you write a comment in Python?,//,/* */,--,#,4,1
+Python,What is the output of print(3 == "3")?,True,False,Error,None,2,2
+Python,What is the main advantage of using lists over arrays?,Faster,More memory,Dynamic size,Immutable,3,3
+JavaScript,What does HTML stand for?,HyperText Markup Language,HyperTool Machine Language,Home Text Markup Language,Hyper Transfer Markup Language,1,1
+JavaScript,Which of the following is a JavaScript framework?,Laravel,Django,React,Spring Boot,3,2
+JavaScript,What is the correct syntax for referring to an external script?,<script href="script.js">,<script src="script.js">,<link src="script.js">,<link href="script.js">,2,2
+JavaScript,What is used to declare a variable?,var,let,const,All of the above,4,2
+JavaScript,What is the result of 5 + '5' in JavaScript?,10,55,Error,NaN,2,2
+JavaScript,Which function is used to print content in JavaScript?,print(),console.log(),echo(),log(),2,1
+JavaScript,What does "typeof null" return?,null,undefined,object,string,3,2
+JavaScript,Which keyword is used to define a function?,func,define,function,method,3,1
+JavaScript,What is the default value of an uninitialized variable?,undefined,null,0,empty string,1,2
+JavaScript,Which method is used to convert a string to an integer?,parseInt(),stringToInt(),toInteger(),convert(),1,2
+Data Science,What is a confusion matrix used for?,Optimize data storage,Measure model performance,Encrypt data,Visualize data,2,2
+Data Science,Which library is used for data visualization in Python?,TensorFlow,NumPy,Matplotlib,Flask,3,2
+Data Science,What does 'NaN' stand for?,Non-Absolute Number,Not-a-Number,Null and None,Not-a-Normal,2,1
+Data Science,Which of the following is a Python library for machine learning?,Pandas,Scikit-learn,Matplotlib,Flask,2,2
+Data Science,What does PCA stand for in machine learning?,Principal Component Analysis,Primary Cluster Algorithm,Pretrained Computational Analysis,Processing Classification Algorithm,1,3
+Data Science,What is the role of a loss function?,Minimize model accuracy,Optimize computation,Measure model error,Visualize dataset,3,3
+Data Science,Which metric is best for imbalanced classification problems?,Accuracy,Precision,Recall,F1-Score,4,3
+Data Science,What is the primary advantage of using deep learning?,Requires less data,Faster training,Better feature extraction,Easier debugging,3,3
+Data Science,Which algorithm is used for classification problems?,K-Means,Linear Regression,Decision Tree,KNN,3,2
+Web Development,Which HTML tag is used for hyperlinks?,<link>,<a>,<href>,<nav>,2,1
+Web Development,What is the purpose of CSS?,Style a website,Write backend logic,Store data,Handle authentication,1,1
+Web Development,Which is a valid CSS property?,font-size,add-value,db-index,table-align,1,2
+Web Development,What is the default position value in CSS?,absolute,relative,fixed,static,4,2
+Web Development,Which HTML tag is used for tables?,<table>,<tab>,<tr>,<td>,1,1
+Web Development,What does flexbox help with?,Database management,Responsive layouts,Backend development,API handling,2,2
+Web Development,Which language is primarily used for backend development?,HTML,CSS,JavaScript,Python,4,2
+Web Development,What does REST stand for?,Representational State Transfer,Resource Encoding System Transfer,Remote Execution System,Root Environment Server,1,3
+Web Development,What is Bootstrap used for?,Building UI components,Database management,Machine learning,Security,1,2
+Web Development,Which tag is used for images in HTML?,<pic>,<img>,<image>,<media>,2,1

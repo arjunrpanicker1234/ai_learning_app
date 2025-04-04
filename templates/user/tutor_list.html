@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ skill.name }} - Available Tutors</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script>
+        function disableButton(tutorId) {
+            let button = document.getElementById("request-btn-" + tutorId);
+            if (button) {
+                button.innerText = "Request Sent";
+                button.classList.remove("btn-success");
+                button.classList.add("btn-secondary");
+                button.disabled = true;
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Tutors for {{ skill.name }}</h1>
+
+        {% if tutors %}
+        <div class="row">
+            {% for tutor in tutors %}
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ tutor.username }}</h5>
+                        <p class="card-text">Tutor for {{ skill.name }}</p>
+
+                        {% set already_requested = false %}
+                        {% for request in pending_requests %}
+                            {% if request.tutor_id == tutor.id %}
+                                {% set already_requested = true %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if already_requested %}
+                            <button class="btn btn-secondary" disabled>Request Sent</button>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('user.request_tutor', tutor_id=tutor.id, skill_id=skill.id) }}">
+                            <button type="submit" class="btn btn-success" id="request-btn-{{ tutor.id }}">
+                                Request Tutor
+                            </button>
+                        </form>
+                        
+                     
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No tutors available for this skill yet.</p>
+        {% endif %}
+
+        <!-- Show flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+</body>
+</html>

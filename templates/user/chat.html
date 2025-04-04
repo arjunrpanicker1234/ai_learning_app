@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tutor - {{ skill.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #2a447a, #324c80);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            padding: 30px 0;
+            min-height: 100vh;
+        }
+        .main-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 0 15px;
+        }
+        .header h1 {
+            font-weight: 600;
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        .chat-container {
+            height: 65vh;
+            overflow-y: auto;
+            padding: 25px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+            scroll-behavior: smooth;
+        }
+        .message-wrapper {
+            display: flex;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+        .message-wrapper.user-wrapper {
+            justify-content: flex-end;
+        }
+        .message {
+            padding: 15px 20px;
+            border-radius: 12px;
+            max-width: 80%;
+            font-size: 1rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background: #2563eb;
+            color: #fff;
+            border-radius: 12px 12px 0 12px;
+        }
+        .ai-message {
+            background: #334155;
+            color: #f8fafc;
+            border-radius: 12px 12px 12px 0;
+        }
+        .timestamp {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+        .input-area {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 15px;
+        }
+        .input-group {
+            background: transparent;
+        }
+        .form-control {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        .btn-send {
+            background: #2563eb;
+            border: none;
+            color: white;
+            font-weight: 500;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-left: 10px;
+            transition: all 0.2s ease;
+        }
+        .btn-send:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        .btn-send:active {
+            transform: translateY(0);
+        }
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 15px;
+            background: #334155;
+            border-radius: 12px 12px 12px 0;
+            margin-bottom: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .typing-indicator.visible {
+            opacity: 1;
+        }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            margin: 0 2px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 16px;
+            background-color: white;
+            margin-left: 1px;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container main-container">
+        <div class="header">
+            <h1>AI Tutor - {{ skill.name }}</h1>
+            <a href="{{ url_for('user.dashboard') }}" class="back-btn">Back to Dashboard</a>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            {% for message in messages %}
+                <div class="message-wrapper {% if message.is_user %}user-wrapper{% endif %}">
+                    <div class="message {% if message.is_user %}user-message{% else %}ai-message{% endif %}">
+                        {{ message.content }}
+                        <div class="timestamp">{{ message.timestamp.strftime('%H:%M') }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+            <div class="typing-indicator" id="typingIndicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <form id="messageForm" method="POST" action="{{ url_for('user.send_message') }}">
+                <input type="hidden" name="session_id" value="{{ session.id }}">
+                <div class="input-group">
+                    <input type="text" name="message" id="messageInput" class="form-control" placeholder="Type your message..." autocomplete="off" required>
+                    <button class="btn btn-send" id="sendButton" type="submit">
+                        Send
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            const chatContainer = document.getElementById('chatContainer');
+            const typingIndicator = document.getElementById('typingIndicator');
+            const messageForm = document.getElementById('messageForm');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            
+            // Scroll to bottom of chat on load
+            function scrollToBottom() {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            scrollToBottom();
+            
+            // Fix for the send button not working properly
+            let isSubmitting = false;
+            
+            messageForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Prevent double submissions
+                if (isSubmitting) return;
+                isSubmitting = true;
+                
+                const userMessage = messageInput.value.trim();
+                if (!userMessage) {
+                    isSubmitting = false;
+                    return;
+                }
+                
+                // Add user message to chat
+                addMessage(userMessage, true);
+                
+                // Clear input field
+                messageInput.value = '';
+                
+                // Show typing indicator
+                typingIndicator.classList.add('visible');
+                scrollToBottom();
+                
+                // Send message to server
+                $.ajax({
+                    type: 'POST',
+                    url: messageForm.action,
+                    data: {
+                        session_id: $('input[name="session_id"]').val(),
+                        message: userMessage
+                    },
+                    success: function(data) {
+                        // Hide typing indicator
+                        typingIndicator.classList.remove('visible');
+                        
+                        // Add AI response with typing effect
+                        typeAIResponse(data.ai_message.content);
+                        
+                        // Enable form again
+                        isSubmitting = false;
+                    },
+                    error: function(xhr, status, error) {
+                        typingIndicator.classList.remove('visible');
+                        alert('Error sending message. Please try again.');
+                        isSubmitting = false;
+                    }
+                });
+            });
+            
+            // Add message to chat container
+            function addMessage(content, isUser = false) {
+                const wrapper = document.createElement('div');
+                wrapper.className = `message-wrapper ${isUser ? 'user-wrapper' : ''}`;
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+                
+                if (isUser) {
+                    messageDiv.textContent = content;
+                } else {
+                    // For AI messages, the content will be added by the typing effect
+                    messageDiv.innerHTML = '';
+                }
+                
+                const timestamp = document.createElement('div');
+                timestamp.className = 'timestamp';
+                timestamp.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                messageDiv.appendChild(timestamp);
+                
+                wrapper.appendChild(messageDiv);
+                chatContainer.insertBefore(wrapper, typingIndicator);
+                scrollToBottom();
+                
+                return messageDiv;
+            }
+            
+            // Type effect for AI responses
+            function typeAIResponse(content) {
+                const messageDiv = addMessage(content, false);
+                const textContainer = document.createElement('span');
+                textContainer.className = 'text-content';
+                
+                // Insert text container before timestamp
+                messageDiv.insertBefore(textContainer, messageDiv.querySelector('.timestamp'));
+                
+                // Create cursor element
+                const cursor = document.createElement('span');
+                cursor.className = 'cursor';
+                textContainer.appendChild(cursor);
+                
+                let i = 0;
+                // Variable typing speed for more natural effect
+                const getRandomDelay = () => Math.floor(Math.random() * 30) + 20;
+                
+                function typeNextCharacter() {
+                    if (i < content.length) {
+                        const char = content.charAt(i);
+                        
+                        // Create text node and insert before cursor
+                        const textNode = document.createTextNode(char);
+                        textContainer.insertBefore(textNode, cursor);
+                        
+                        i++;
+                        scrollToBottom();
+                        
+                        // Calculate delay based on punctuation for more natural typing
+                        let delay = getRandomDelay();
+                        if ('.!?'.includes(char)) {
+                            delay = 400; // Pause longer at end of sentences
+                        } else if (',;:'.includes(char)) {
+                            delay = 200; // Slight pause at commas and other punctuation
+                        }
+                        
+                        setTimeout(typeNextCharacter, delay);
+                    } else {
+                        // Remove cursor when typing is complete
+                        cursor.remove();
+                    }
+                }
+                
+                // Start typing effect
+                setTimeout(typeNextCharacter, 200);
+            }
+            
+            // Focus input field on load
+            messageInput.focus();
+        });
+    </script>
+</body>
+</html>

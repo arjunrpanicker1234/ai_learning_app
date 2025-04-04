@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ skill.name }} Resources</h1>
+    
+    {% if assessment_taken %}
+    <div class="alert alert-info">
+        Your current proficiency level: {{ proficiency }}/5
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        You haven't taken an assessment for this skill yet. These resources are set to beginner level.
+    </div>
+    {% endif %}
+    
+    <div class="row mt-4">
+        {% if resources %}
+            {% for resource in resources %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        Level: {{ resource.proficiency_level }}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ resource.title }}</h5>
+                        <p class="card-text">{{ resource.description }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ resource.url }}" class="btn btn-primary" target="_blank">Access Resource</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    No resources found at your proficiency level.
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ url_for('user.start_assessment', skill_id=skill.id) }}" class="btn btn-secondary">Retake Assessment</a>
+        <a href="{{ url_for('user.dashboard') }}" class="btn btn-outline-primary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>View Tutors for {{ skill.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>Tutors for Skill: {{ skill.name }}</h1>
+
+    <ul>
+        {% for tutor in tutors %}
+        <li>{{ tutor.name }} - Expertise: {{ tutor.expertise }}</li>
+        {% else %}
+        <p>No tutors found for this skill.</p>
+        {% endfor %}
+    </ul>
+
+    <a href="{{ url_for('user.dashboard') }}" class="btn">Back to Dashboard</a>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutor Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .dashboard-container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+        .sidebar {
+            width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .content {
+            flex-grow: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .table thead {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Tutor Dashboard</h1>
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="dashboard-container">
+        
+        <!-- Sidebar for Profile, Skills, and Logout -->
+        <div class="sidebar">
+            <h4>Manage Profile</h4>
+            <div class="btn-group">
+                <a href="{{ url_for('tutor.add_skill') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add Skills</a>
+                <a href="{{ url_for('tutor.upload_resource') }}" class="btn btn-success"><i class="fas fa-upload"></i> Upload PDF</a>
+                <a href="{{ url_for('tutor.view_resources') }}" class="btn btn-info"><i class="fas fa-book"></i> View All Resources</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+
+            <hr>
+
+            <h5>Your Skills</h5>
+            <ul class="list-group">
+                {% for skill in tutor_skills %}
+                    <li class="list-group-item">{{ skill.name }}</li>
+                {% else %}
+                    <li class="list-group-item text-muted">No skills added yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="content">
+            
+            <!-- Uploaded PDFs Section -->
+            <h4>Uploaded PDFs</h4>
+            {% if has_resources %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Skill</th>
+                            <th>Proficiency Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for resource in tutor_resources %}
+                            <tr>
+                                <td>{{ resource.title }}</td>
+                                <td>{{ resource.skill.name }}</td>
+                                <td>{{ resource.proficiency_level }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted">No PDFs uploaded yet.</p>
+            {% endif %}
+
+            <hr>
+
+            <!-- Pending Requests -->
+            <h4>Pending Requests</h4>
+            {% if pending_requests %}
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Skill</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in pending_requests %}
+                            <tr>
+                                <td>{{ request.user.username }}</td>
+                                <td>{{ request.skill.name }}</td>
+                                <td>
+                                    <form action="{{ url_for('tutor.approve_request', request_id=request.id) }}" method="post" style="display:inline;">
+                                        <button class="btn btn-sm btn-success"><i class="fas fa-check"></i> Approve</button>
+                                    </form>
+                                    <form action="{{ url_for('tutor.reject_request', request_id=request.id) }}" method="post" style="display:inline;">
+                                        <button class="btn btn-sm btn-danger"><i class="fas fa-times"></i> Reject</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted">No pending requests.</p>
+            {% endif %}
+
+            <hr>
+
+            <!-- Approved Students -->
+            <h4>Approved Students</h4>
+            {% if approved_requests %}
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Skill</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in approved_requests %}
+                            <tr>
+                                <td>{{ request.user.username }}</td>
+                                <td>{{ request.skill.name }}</td>
+                                <td>
+                                    <a href="{{ url_for('user.ai_tutor', skill_id=request.skill.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-chalkboard-teacher"></i> Start AI Tutoring
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted">No approved students yet.</p>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
